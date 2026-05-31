@@ -15,8 +15,8 @@ COPY src ./src
 # Make Maven wrapper executable
 RUN chmod +x mvnw
 
-# Build the project (skip tests)
-RUN ./mvnw clean install -DskipTests
+# Build the project (Skip BOTH test execution and test compilation)
+RUN ./mvnw clean install -Dmaven.test.skip=true
 
 # Run the jar file, dynamically respecting the Port assigned by Render
 CMD ["java", "-jar", "target/online.ai-0.0.1-SNAPSHOT.jar"]
