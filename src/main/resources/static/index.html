@@ -4,54 +4,195 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>pank.online.ai</title>
+
     <style>
-        * { box-sizing: border-box; }
-        body { font-family: -apple-system, sans-serif; margin: 0; padding: 10px; background: #1a1a1a; color: #f5f5f5; }
-        #wrapper { max-width: 600px; margin: auto; display: flex; flex-direction: column; height: 95vh; }
-        #chat-box { flex: 1; overflow-y: auto; background: #2d2d2d; padding: 20px; border-radius: 12px; margin-bottom: 10px; }
-        .msg { padding: 12px 16px; border-radius: 8px; margin: 8px 0; font-size: 16px; line-height: 1.5; max-width: 85%; }
-        .user { background: #007acc; margin-left: auto; color: white; }
-        .ai { background: #28a745; color: white; }
-        .input-bar { display: flex; gap: 8px; }
-        input { flex: 1; padding: 14px; background: #3d3d3d; border: none; border-radius: 8px; color: white; font-size: 16px; }
-        button { background: #28a745; color: white; border: none; padding: 14px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background: #1a1a1a;
+            color: #f5f5f5;
+        }
+
+        #wrapper {
+            max-width: 600px;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            height: 95vh;
+        }
+
+        #chat-box {
+            flex: 1;
+            overflow-y: auto;
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+
+        .msg {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-size: 16px;
+            line-height: 1.5;
+            max-width: 85%;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .user {
+            background: #007acc;
+            margin-left: auto;
+            color: white;
+        }
+
+        .ai {
+            background: #28a745;
+            color: white;
+        }
+
+        .input-bar {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        textarea {
+            flex: 1;
+            padding: 14px;
+            background: #3d3d3d;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            resize: none;
+            min-height: 52px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: inherit;
+        }
+
+        textarea:focus {
+            outline: none;
+        }
+
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            height: 52px;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
-    <div id="wrapper">
-        <h3 style="text-align: center; color: #28a745;">pank.online.ai</h3>
-        <div id="chat-box"></div>
-        <div class="input-bar">
-            <input type="text" id="user-input" placeholder="Message pank.online.ai..." onkeypress="if(event.key==='Enter') sendMessage()">
-            <button onclick="sendMessage()">Send</button>
-        </div>
+
+<div id="wrapper">
+    <h3 style="text-align:center;color:#28a745;">
+        pank.online.ai
+    </h3>
+
+    <div id="chat-box"></div>
+
+    <div class="input-bar">
+        <textarea
+            id="user-input"
+            placeholder="Message pank.online.ai..."
+            rows="1"
+            onkeydown="handleKeyDown(event)"
+        ></textarea>
+
+        <button onclick="sendMessage()">Send</button>
     </div>
+</div>
 
-    <script>
-        if (!sessionStorage.getItem('chatSessionId')) {
-            sessionStorage.setItem('chatSessionId', 'session-' + Math.random().toString(36).substring(2, 11));
+<script>
+    // Create session id once per browser tab
+    if (!sessionStorage.getItem('chatSessionId')) {
+        sessionStorage.setItem(
+            'chatSessionId',
+            'session-' + Math.random().toString(36).substring(2, 11)
+        );
+    }
+
+    const mySessionId = sessionStorage.getItem('chatSessionId');
+    const textarea = document.getElementById('user-input');
+
+    // Auto-grow textarea like ChatGPT
+    textarea.addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+    });
+
+    // Enter = Send
+    // Shift+Enter = New Line
+    function handleKeyDown(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            sendMessage();
         }
-        const mySessionId = sessionStorage.getItem('chatSessionId');
+    }
 
-        async function sendMessage() {
-            const input = document.getElementById('user-input');
-            const box = document.getElementById('chat-box');
-            if(!input.value.trim()) return;
+    async function sendMessage() {
+        const input = document.getElementById('user-input');
+        const box = document.getElementById('chat-box');
 
-            const text = input.value;
-            box.innerHTML += `<div class="msg user">${text}</div>`;
-            input.value = '';
-            box.scrollTop = box.scrollHeight;
+        const text = input.value.trim();
 
-            try {
-                const response = await fetch(`/api/chat?message=${encodeURIComponent(text)}&sessionId=${mySessionId}`);
-                const reply = await response.text();
-                box.innerHTML += `<div class="msg ai">${reply}</div>`;
-            } catch (err) {
-                box.innerHTML += `<div class="msg ai" style="background:#ef4444;">Server offline. Deploying or waking up...</div>`;
-            }
-            box.scrollTop = box.scrollHeight;
+        if (!text) {
+            return;
         }
-    </script>
+
+        box.innerHTML += `
+            <div class="msg user">${escapeHtml(text)}</div>
+        `;
+
+        input.value = '';
+        input.style.height = '52px';
+
+        box.scrollTop = box.scrollHeight;
+
+        try {
+            const response = await fetch(
+                `/api/chat?message=${encodeURIComponent(text)}&sessionId=${mySessionId}`
+            );
+
+            const reply = await response.text();
+
+            box.innerHTML += `
+                <div class="msg ai">${escapeHtml(reply)}</div>
+            `;
+        } catch (err) {
+            box.innerHTML += `
+                <div class="msg ai" style="background:#ef4444;">
+                    Server offline. Deploying or waking up...
+                </div>
+            `;
+        }
+
+        box.scrollTop = box.scrollHeight;
+    }
+
+    // Prevent HTML injection
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+</script>
+
 </body>
 </html>
